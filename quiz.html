@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pixel 11 Interactive Quiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            touch-action: manipulation;
+        }
+        
+        .kahoot-bg {
+            background-color: #46178f;
+            background-image: radial-gradient(circle at center, #6b21a8 0%, #46178f 100%);
+        }
+
+        .shape-bg {
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+
+        .btn-red { background-color: #e21b3c; border-bottom: 4px solid #b0152f; }
+        .btn-blue { background-color: #1368ce; border-bottom: 4px solid #0e50a0; }
+        .btn-yellow { background-color: #d89e00; border-bottom: 4px solid #a87b00; }
+        .btn-green { background-color: #26890c; border-bottom: 4px solid #1d6909; }
+        
+        .btn-red:active, .btn-blue:active, .btn-yellow:active, .btn-green:active {
+            border-bottom-width: 0px;
+            transform: translateY(4px);
+        }
+
+        .option-shape {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            margin-right: 12px;
+            vertical-align: middle;
+        }
+
+        /* Triangle */
+        .shape-triangle {
+            width: 0; 
+            height: 0; 
+            border-left: 16px solid transparent;
+            border-right: 16px solid transparent;
+            border-bottom: 32px solid white;
+            background: none;
+        }
+        
+        /* Diamond */
+        .shape-diamond {
+            background: white;
+            transform: rotate(45deg) scale(0.7);
+        }
+        
+        /* Circle */
+        .shape-circle {
+            background: white;
+            border-radius: 50%;
+        }
+        
+        /* Square */
+        .shape-square {
+            background: white;
+        }
+
+        .view { display: none; }
+        .view.active { display: flex; }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </script>
+</head>
+<body class="w-full h-screen overflow-hidden text-gray-800 flex flex-col kahoot-bg shape-bg">
+
+    
+    <!-- Error Modal -->
+    <div id="error-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex justify-center items-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full text-center">
+            <h3 class="text-xl font-bold text-red-600 mb-2">Error</h3>
+            <p id="error-message" class="text-gray-700 mb-6">Something went wrong.</p>
+            <button onclick="closeError()" class="px-6 py-2 bg-gray-200 rounded-lg font-semibold hover:bg-gray-300">Dismiss</button>
+        </div>
+    </div>
+
+    <!-- 1. Start View -->
+    <div id="view-start" class="view active flex-col items-center justify-center w-full h-full p-4 relative">
+        <div class="absolute top-4 right-4 text-white font-bold opacity-50">Pixel 11 Trivia</div>
+        <div class="w-full max-w-md bg-white p-8 rounded-xl shadow-2xl flex flex-col items-center space-y-6">
+            <h1 class="text-3xl font-black text-center text-purple-800">Pixel 11<br>Interactive Quiz</h1>
+            
+            <div class="w-full space-y-4">
+                <div class="bg-gray-100 p-4 rounded-lg flex flex-col space-y-3 border-2 border-gray-200">
+                    <h2 class="font-bold text-center text-gray-600 uppercase tracking-wider text-sm">Join a Game</h2>
+                    <input type="text" id="join-pin" placeholder="Game PIN" class="w-full px-4 py-3 text-center text-xl font-bold rounded border-2 border-gray-300 focus:outline-none focus:border-purple-500 uppercase" maxlength="6">
+                    <input type="text" id="join-name" placeholder="Nickname" class="w-full px-4 py-3 text-center text-lg font-bold rounded border-2 border-gray-300 focus:outline-none focus:border-purple-500" maxlength="15">
+                    <button id="btn-join" class="w-full py-3 bg-gray-900 text-white font-bold text-lg rounded shadow-lg hover:bg-gray-800 transition">Enter</button>
+                </div>
+                
+                <div class="relative flex py-2 items-center">
+                    <div class="flex-grow border-t border-gray-300"></div>
+                    <span class="flex-shrink-0 mx-4 text-gray-400 font-semibold text-sm">OR</span>
+                    <div class="flex-grow border-t border-gray-300"></div>
+                </div>
+
+                <div class="bg-purple-50 p-4 rounded-lg flex flex-col items-center border-2 border-purple-100">
+                    <p class="text-sm text-purple-700 font-semibold mb-3 text-center">Want to run the quiz on a big screen?</p>
+                    <button id="btn-host" class="w-full py-3 bg-purple-600 text-white font-bold text-lg rounded shadow-lg hover:bg-purple-700 transition">Host a Game</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <!-- 2. Host Lobby View -->
+    <div id="view-host-lobby" class="view flex-col w-full h-full relative">
+        <div class="bg-white p-6 shadow-md flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <h2 class="text-2xl font-bold text-gray-800">Join at <span class="text-purple-600">this app</span> with PIN:</h2>
+                <div id="host-pin-display" class="text-5xl font-black tracking-widest text-black bg-yellow-300 px-6 py-2 rounded shadow-inner">0000</div>
+            </div>
+            <button id="btn-start-game" class="px-8 py-3 bg-blue-600 text-white font-bold text-xl rounded shadow hover:bg-blue-700 transition">Start Quiz</button>
+        </div>
+        <div class="flex-grow p-8 overflow-y-auto">
+            <div class="flex justify-between items-end mb-6">
+                <h3 class="text-3xl font-bold text-white drop-shadow-md"><span id="player-count">0</span> Players</h3>
+            </div>
+            <div id="host-player-list" class="flex flex-wrap gap-4">
+                <!-- Players will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Player Lobby View -->
+    <div id="view-player-lobby" class="view flex-col items-center justify-center w-full h-full p-4">
+        <div class="text-center text-white">
+            <h2 class="text-3xl font-bold mb-4">You're in!</h2>
+            <div class="text-2xl font-semibold mb-8">See your nickname on screen</div>
+            <div class="inline-block p-6 bg-white bg-opacity-20 rounded-xl backdrop-blur-sm">
+                <div class="text-4xl font-black" id="player-lobby-name">Nickname</div>
+            </div>
+            <div class="mt-12 flex items-center justify-center space-x-3 text-xl font-medium pulse">
+                <svg class="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                <span>Waiting for host to start...</span>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- 4. Host Question View -->
+    <div id="view-host-question" class="view flex-col w-full h-full bg-gray-50">
+        <div class="p-6 text-center shadow-sm bg-white">
+            <h2 id="host-question-text" class="text-3xl md:text-5xl font-bold text-gray-800 mb-2">Question Text Here?</h2>
+        </div>
+        <div class="flex-grow flex flex-col p-4 md:p-8 space-y-4">
+            <div class="flex justify-between items-center px-4">
+                <div class="text-2xl font-bold text-gray-500"><span id="host-answers-count">0</span> Answers</div>
+                <button id="btn-show-results" class="px-6 py-2 bg-purple-600 text-white font-bold rounded shadow hover:bg-purple-700">Show Results</button>
+            </div>
+            <div class="flex-grow grid grid-cols-2 gap-4" id="host-options-container">
+                <!-- Options populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Player Answer View -->
+    <div id="view-player-question" class="view flex-col w-full h-full bg-gray-100 p-2 space-y-2">
+        <div class="bg-white p-4 text-center rounded shadow font-bold text-lg text-gray-700">
+            Look at the screen for the question!
+        </div>
+        <div class="flex-grow grid grid-cols-2 gap-2" id="player-buttons-container">
+            <button class="btn-red w-full h-full rounded flex items-center justify-center text-white" onclick="submitAnswer(0)">
+                <div class="shape-triangle"></div>
+            </button>
+            <button class="btn-blue w-full h-full rounded flex items-center justify-center text-white" onclick="submitAnswer(1)">
+                <div class="shape-diamond option-shape"></div>
+            </button>
+            <button class="btn-yellow w-full h-full rounded flex items-center justify-center text-white" onclick="submitAnswer(2)">
+                <div class="shape-circle option-shape"></div>
+            </button>
+            <button class="btn-green w-full h-full rounded flex items-center justify-center text-white" onclick="submitAnswer(3)">
+                <div class="shape-square option-shape"></div>
+            </button>
+        </div>
+    </div>
+
+
+    <!-- 6. Host Result View -->
+    <div id="view-host-result" class="view flex-col w-full h-full bg-gray-50 p-8">
+        <div class="text-center mb-8">
+            <h2 class="text-4xl font-bold text-gray-800">Results</h2>
+        </div>
+        <div class="flex-grow flex flex-col justify-center items-center space-y-8">
+            <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-2xl text-center">
+                <h3 class="text-2xl text-gray-500 font-bold mb-2">Correct Answer:</h3>
+                <div id="host-correct-answer" class="text-4xl font-black text-green-600">Answer Text</div>
+            </div>
+            
+            <!-- Bar chart for answers could go here in a full app, keeping it simple for now -->
+            
+            <div class="flex space-x-4">
+                <button id="btn-next-question" class="px-8 py-4 bg-blue-600 text-white font-bold text-2xl rounded shadow hover:bg-blue-700 transition">Next Question</button>
+                <button id="btn-end-game" class="px-8 py-4 bg-gray-800 text-white font-bold text-2xl rounded shadow hover:bg-gray-900 transition">End & Leaderboard</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. Player Result View -->
+    <div id="view-player-result" class="view flex-col items-center justify-center w-full h-full p-4 transition-colors duration-500">
+        <div class="text-center text-white">
+            <div id="player-result-icon" class="text-6xl mb-4">👍</div>
+            <h2 id="player-result-title" class="text-5xl font-black mb-2">Correct!</h2>
+            <div class="bg-black bg-opacity-20 inline-block px-6 py-2 rounded-full font-bold text-xl mt-4">
+                Score: <span id="player-current-score">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 8. Leaderboard View (Host) -->
+    <div id="view-leaderboard" class="view flex-col w-full h-full bg-purple-900 p-8 text-white relative">
+        <div class="absolute top-0 left-0 w-full h-full shape-bg opacity-20 pointer-events-none"></div>
+        <div class="z-10 flex flex-col items-center w-full h-full max-w-4xl mx-auto">
+            <h2 class="text-5xl font-black mb-12 drop-shadow-lg">Podium</h2>
+            
+            <div class="flex items-end justify-center space-x-4 h-64 mb-12 w-full" id="podium-container">
+                <!-- Podium bars will be injected here -->
+            </div>
+            
+            <div class="w-full bg-white bg-opacity-10 rounded-xl p-4 flex-grow overflow-y-auto hidden" id="extended-leaderboard">
+                <!-- Rest of players -->
+            </div>
+            
+            <button onclick="window.location.reload()" class="mt-8 px-6 py-3 bg-white text-purple-900 font-bold rounded shadow hover:bg-gray-100">Back to Start</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- 1. UI HELPERS (Defined First to prevent crashes) ---
+        const views = ['view-start', 'view-host-lobby', 'view-player-lobby', 'view-host-question', 'view-player-question', 'view-host-result', 'view-player-result', 'view-leaderboard'];
+        
+        function switchView(viewId) {
+            views.forEach(v => {
+                const el = document.getElementById(v);
+                if(el) el.classList.remove('active');
+            });
+            const activeEl = document.getElementById(viewId);
+            if(activeEl) activeEl.classList.add('active');
+            
+            // Adjust body background based on view
+            if (['view-start', 'view-player-lobby'].includes(viewId)) {
+                document.body.className = "w-full h-screen overflow-hidden text-gray-800 flex flex-col kahoot-bg shape-bg";
+            } else if (viewId === 'view-leaderboard') {
+                 document.body.className = "w-full h-screen overflow-hidden text-gray-800 flex flex-col bg-purple-900 shape-bg";
+            } else {
+                document.body.className = "w-full h-screen overflow-hidden text-gray-800 flex flex-col";
+            }
+        }
+
+        window.showError = function(msg) {
+            const errMsg = document.getElementById('error-message');
+            const errModal = document.getElementById('error-modal');
+            if (errMsg && errModal) {
+                errMsg.innerText = msg;
+                errModal.classList.remove('hidden');
+            } else {
+                console.error("Error:", msg);
+            }
+        };
+
+        window.closeError = function() {
+            const errModal = document.getElementById('error-modal');
+            if (errModal) errModal.classList.add('hidden');
+        };
+
+        function generatePIN() {
+            return Math.floor(1000 + Math.random() * 9000).toString(); 
+        }
+
+        // --- 2. FIREBASE INITIALIZATION (Safe parsing) ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'pixel-quiz-app';
+        let firebaseConfig = {};
+        let app, db, auth;
+        let isFirebaseInitialized = false;
+
+        try {
+            if (typeof __firebase_config !== 'undefined') {
+                firebaseConfig = JSON.parse(__firebase_config);
+                if (Object.keys(firebaseConfig).length > 0) {
+                    app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
+                    isFirebaseInitialized = true;
+                }
+            } else {
+                console.warn("No Firebase config detected. Offline mode only.");
+            }
+        } catch (e) {
+            console.error("Failed to parse firebase config or initialize:", e);
+        }
+
+        // --- 3. STATE & DATA ---
+        let userId = null;
+        let isHost = false;
+        let gamePin = null;
+        let playerName = "";
+        let players = [];
+        let gameData = null;
+        
+        let unsubscribeGame = null;
+        let unsubscribePlayers = null;
+        let hasAnsweredCurrentQuestion = false;
+
+        const quizQuestions = [
+            { q: "Which custom processor powers the Google Pixel 11 smartphone range?", options: ["Snapdragon 8 Gen 4", "Google Tensor G6", "MediaTek Dimensity 9400", "Apple A18 Pro"], correct: 1 },
+            { q: "What version of Android comes pre-installed on the Google Pixel 11?", options: ["Android 15", "Android 16", "Android 17", "Android 18"], correct: 2 },
+            { q: "How many years of major OS updates does Google officially promise?", options: ["Three years", "Five years", "Seven years", "Ten years"], correct: 2 },
+            { q: "How many total CPU cores does the Tensor G6 chipset feature?", options: ["Six CPU cores", "Seven CPU cores", "Eight CPU cores", "Ten CPU cores"], correct: 1 },
+            { q: "Which biometric tech is used for the under-display fingerprint scanner?", options: ["Optical scanner", "Ultrasonic scanner", "Capacitive scanner", "Infrared scanner"], correct: 1 },
+            { q: "What is the maximum peak brightness on the Pixel 11 Pro's Super Actua display?", options: ["2400 nits", "3000 nits", "3600 nits", "4000 nits"], correct: 2 },
+            { q: "Which standard of wireless charging is supported, enabling magnetic attachment?", options: ["Qi 1.0", "Qi2.2 standard", "MagSafe", "PMA"], correct: 1 },
+            { q: "What is the megapixel resolution of the periscope telephoto camera on the Pro?", options: ["12 MP", "48 MP", "50 MP", "200 MP"], correct: 1 },
+            { q: "Which dedicated security coprocessor is integrated to protect data?", options: ["Titan M2", "Titan M3", "Knox", "Secure Enclave"], correct: 1 },
+            { q: "What type of reinforced glass protects the front and back panels?", options: ["Sapphire Glass", "Gorilla Glass 6", "Gorilla Glass Victus", "Gorilla Glass Victus 2"], correct: 3 }
+        ];
+
+        // --- 4. AUTHENTICATION ---
+        async function authenticate() {
+            if (!isFirebaseInitialized) {
+                showError("Database is not connected in this environment.");
+                return null;
+            }
+            if (typeof __initial_auth_token !== 'undefined') {
+                try {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } catch (e) {
+                    console.error("Custom token auth failed, falling back to anonymous", e);
+                    await signInAnonymously(auth);
+                }
+            } else {
+                await signInAnonymously(auth);
+            }
+            
+            return new Promise((resolve) => {
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        resolve(user);
+                    } else {
+                        resolve(null);
+                    }
+                });
+            });
+        }
+
+        // --- 5. HOST LOGIC ---
+        document.getElementById('btn-host').addEventListener('click', async () => {
+            document.getElementById('btn-host').disabled = true;
+            document.getElementById('btn-host').innerText = "Creating...";
+            
+            await authenticate();
+            if (!userId) {
+                document.getElementById('btn-host').disabled = false;
+                document.getElementById('btn-host').innerText = "Host a Game";
+                return;
+            }
+
+            isHost = true;
+            gamePin = generatePIN();
+            
+            try {
+                const gameRef = doc(db, 'artifacts', appId, 'public', 'data', 'pixelQuizGames', gamePin);
+                await setDoc(gameRef, {
+                    hostId: userId,
+                    status: 'lobby', 
+                    currentQuestionIndex: -1,
+                    createdAt: new Date().toISOString()
+                });
+
+                setupHostListeners();
+                document.getElementById('host-pin-display').innerText = gamePin;
+                switchView('view-host-lobby');
+
+            } catch (err) {
+                console.error(err);
+                showError("Failed to create game. Check permissions.");
+                document.getElementById('btn-host').disabled = false;
+                document.getElementById('btn-host').innerText = "Host a Game";
+            }
+        });
+
+        function setupHostListeners() {
+            const gameRef = doc(db, 'artifacts', appId, 'public', 'data', 'pixelQuizGames', gamePin);
+            unsubscribeGame = onSnapshot(gameRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    gameData = docSnap.data();
+                    renderHostView();
+                }
+            }, (error) => console.error("Game listener error:", error));
+
+            const playersColRef = collection(db, 'artifacts', appId, 'public', 'data', 'pixelQuizPlayers');
+            unsubscribePlayers = onSnapshot(playersColRef, (snapshot) => {
+                players = [];
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    if (data.gamePin === gamePin) players.push(data);
+                });
+                renderHostView();
+            }, (error) => console.error("Players listener error:", error));
+        }
+
+        function renderHostView() {
+            if (!gameData) return;
+
+            if (gameData.status === 'lobby') {
+                document.getElementById('player-count').innerText = players.length;
+                const list = document.getElementById('host-player-list');
+                list.innerHTML = players.map(p => `
+                    <div class="px-4 py-2 bg-gray-200 text-gray-800 font-bold rounded shadow text-lg animate-pulse">
+                        ${p.name}
+                    </div>
+                `).join('');
+                
+                const startBtn = document.getElementById('btn-start-game');
+                startBtn.disabled = false;
+                startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            } 
+            else if (gameData.status === 'question') {
+                switchView('view-host-question');
+                const q = quizQuestions[gameData.currentQuestionIndex];
+                document.getElementById('host-question-text').innerText = q.q;
+                
+                const shapes = ['shape-triangle', 'shape-diamond', 'shape-circle', 'shape-square'];
+                const colors = ['bg-[#e21b3c]', 'bg-[#1368ce]', 'bg-[#d89e00]', 'bg-[#26890c]'];
+                
+                document.getElementById('host-options-container').innerHTML = q.options.map((opt, i) => `
+                    <div class="${colors[i]} rounded-xl p-4 md:p-8 flex items-center shadow-md text-white text-xl md:text-3xl font-bold">
+                        <div class="${shapes[i]} option-shape mr-4 md:mr-8 transform scale-150"></div>
+                        <span>${opt}</span>
+                    </div>
+                `).join('');
+
+                const answerCount = players.filter(p => p.currentAnswer !== null && p.currentAnswer !== undefined).length;
+                document.getElementById('host-answers-count').innerText = answerCount;
+            }
+            else if (gameData.status === 'result') {
+                switchView('view-host-result');
+                const q = quizQuestions[gameData.currentQuestionIndex];
+                document.getElementById('host-correct-answer').innerText = q.options[q.correct];
+                
+                if (gameData.currentQuestionIndex >= quizQuestions.length - 1) {
+                    document.getElementById('btn-next-question').classList.add('hidden');
+                } else {
+                    document.getElementById('btn-next-question').classList.remove('hidden');
+                }
+            }
+            else if (gameData.status === 'leaderboard') {
+                switchView('view-leaderboard');
+                renderLeaderboard();
+            }
+        }
+
+        document.getElementById('btn-start-game').addEventListener('click', async () => {
+            const gameRef = doc(db, 'artifacts', appId, 'public', 'data', 'pixelQuizGames', gamePin);
+            await resetPlayerAnswers();
+            await updateDoc(gameRef, { status: 'question', currentQuestionIndex: 0 });
+        });
+
+        document.getElementById('btn-show-results').addEventListener('click', async () => {
+            const gameRef = doc(db, 'artifacts', appId, 'public', 'data', 'pixelQuizGames', gamePin);
+            await updateDoc(gameRef, { status: 'result' });
+            await calculateScores();
+        });
+
+        document.getElementById('btn-next-question').addEventListener('click', async () => {
+            const gameRef = doc(db, 'artifacts', appId, 'public', 'data', 'pixelQuizGames', gamePin);
+            await resetPlayerAnswers();
+            await updateDoc(gameRef, { status: 'question', currentQuestionIndex: gameData.currentQuestionIndex + 1 });
+        });
+
+        document.getElementById('btn-end-game').addEventListener('click', async () => {
+            const gameRef = doc(db, 'artifacts', appId, 'public', 'data', 'pixelQuizGames', gamePin);
+            await updateDoc(gameRef, { status: 'leaderboard' });
+        });
+
+        async function resetPlayerAnswers() {
+             for (const p of players) {
+                 const pRef = doc(db, 'artifacts', appId, 'public', 'data', 'pixelQuizPlayers', `${gamePin}_${p.playerId}`);
+                 await updateDoc(pRef, { currentAnswer: null });
+             }
+        }
+
+        async function calculateScores() {
+            if (!gameData) return;
+            const correctIndex = quizQuestions[gameData.currentQuestionIndex].correct;
+            
+            for (const p of players) {
+                const pRef = doc(db, 'artifacts', appId, 'public', 'data', 'pixelQuizPlayers', `${gamePin}_${p.playerId}`);
+                if (p.currentAnswer === correctIndex) {
+                    await updateDoc(pRef, { score: p.score + 1000, lastResult: true });
+                } else {
+                    await updateDoc(pRef, { lastResult: false });
+                }
+            }
+        }
+
+        function renderLeaderboard() {
+            const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+            const podium = document.getElementById('podium-container');
+            let html = '';
+            
+            if (sortedPlayers.length > 1) {
+                html += `
+                <div class="flex flex-col items-center w-1/3">
+                    <div class="text-2xl font-bold mb-2 truncate w-full text-center">${sortedPlayers[1].name}</div>
+                    <div class="text-xl font-semibold mb-2">${sortedPlayers[1].score}</div>
+                    <div class="w-full bg-gray-300 rounded-t-lg h-32 flex items-start justify-center pt-4">
+                        <span class="text-4xl font-black text-gray-500">2</span>
+                    </div>
+                </div>`;
+            }
+            if (sortedPlayers.length > 0) {
+                html += `
+                <div class="flex flex-col items-center w-1/3">
+                    <div class="text-3xl font-bold mb-2 truncate w-full text-center text-yellow-300">${sortedPlayers[0].name}</div>
+                    <div class="text-2xl font-semibold mb-2">${sortedPlayers[0].score}</div>
+                    <div class="w-full bg-yellow-400 rounded-t-lg h-48 flex items-start justify-center pt-4 shadow-[0_0_30px_rgba(250,204,21,0.5)] z-10">
+                        <span class="text-5xl font-black text-yellow-700">1</span>
+                    </div>
+                </div>`;
+            }
+            if (sortedPlayers.length > 2) {
+                html += `
+                <div class="flex flex-col items-center w-1/3">
+                    <div class="text-2xl font-bold mb-2 truncate w-full text-center">${sortedPlayers[2].name}</div>
+                    <div class="text-xl font-semibold mb-2">${sortedPlayers[2].score}</div>
+                    <div class="w-full bg-yellow-700 rounded-t-lg h-24 flex items-start justify-center pt-4">
+                        <span class="text-4xl font-black text-yellow-900">3</span>
+                    </div>
+                </div>`;
+            }
+            podium.innerHTML = html;
+        }
+
+        // --- 6. PLAYER LOGIC ---
+        function resetJoinBtn() {
+            const btn = document.getElementById('btn-join');
+            if(btn) {
+                btn.disabled = false;
+                btn.innerText = "Enter";
+            }
+        }
+
+        document.getElementById('btn-join').addEventListener('click', async () => {
+            const pinInput = document.getElementById('join-pin').value.trim();
+            const nameInput = document.getElementById('join-name').value.trim();
+            
+            if (pinInput.length === 0 || nameInput.length === 0) {
+                showError("Please enter both PIN and Nickname.");
+                return;
+            }
+
+            document.getElementById('btn-join').disabled = true;
+            document.getElementById('btn-join').innerText = "Joining...";
+
+            await authenticate();
+            if (!userId) {
+                resetJoinBtn();
+                return;
+            }
+
+            const gameRef = doc(db, 'artifacts', appId, 'public', 'data', 'pixelQuizGames', pinInput);
+            try {
+                const docSnap = await getDoc(gameRef);
+                if (!docSnap.exists()) {
+                    showError("Game not found. Check the PIN.");
+                    resetJoinBtn();
+                    return;
+                }
+                
+                const gData = docSnap.data();
+                if (gData.status !== 'lobby') {
+                    showError("Game already started.");
+                    resetJoinBtn();
+                    return;
+                }
+
+                gamePin = pinInput;
+                playerName = nameInput;
+                const playerRef = doc(db, 'artifacts', appId, 'public', 'data', 'pixelQuizPlayers', `${gamePin}_${userId}`);
+                await setDoc(playerRef, {
+                    gamePin: gamePin,
+                    playerId: userId,
+                    name: playerName,
+                    score: 0,
+                    currentAnswer: null,
+                    lastResult: null
+                });
+
+                document.getElementById('player-lobby-name').innerText = playerName;
+                switchView('view-player-lobby');
+                setupPlayerListeners();
+
+            } catch (e) {
+                console.error(e);
+                showError("Error joining game.");
+                resetJoinBtn();
+            }
+        });
+
+        function setupPlayerListeners() {
+            const gameRef = doc(db, 'artifacts', appId, 'public', 'data', 'pixelQuizGames', gamePin);
+            unsubscribeGame = onSnapshot(gameRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    gameData = docSnap.data();
+                    renderPlayerView();
+                }
+            }, (err) => console.error(err));
+
+            const playerRef = doc(db, 'artifacts', appId, 'public', 'data', 'pixelQuizPlayers', `${gamePin}_${userId}`);
+            unsubscribePlayers = onSnapshot(playerRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const myData = docSnap.data();
+                    document.getElementById('player-current-score').innerText = myData.score;
+                    if (gameData && gameData.status === 'result') {
+                        renderPlayerResult(myData.lastResult);
+                    }
+                }
+            }, (err) => console.error(err));
+        }
+
+        function renderPlayerView() {
+            if (!gameData) return;
+
+            if (gameData.status === 'question') {
+                hasAnsweredCurrentQuestion = false;
+                switchView('view-player-question');
+                document.querySelectorAll('#player-buttons-container button').forEach(b => {
+                    b.classList.remove('opacity-50');
+                    b.innerHTML = b.innerHTML.replace('<div class="text-sm mt-2 ml-2 font-bold absolute bottom-2 right-2">Sent</div>', '');
+                });
+            } else if (gameData.status === 'leaderboard') {
+                 switchView('view-player-lobby');
+                 document.querySelector('#view-player-lobby h2').innerText = "Game Over!";
+                 document.querySelector('#view-player-lobby .pulse').innerHTML = "Look at the big screen for the final standings!";
+            }
+        }
+
+        function renderPlayerResult(isCorrect) {
+            switchView('view-player-result');
+            const view = document.getElementById('view-player-result');
+            if (isCorrect) {
+                view.className = "view active flex-col items-center justify-center w-full h-full p-4 transition-colors duration-500 bg-green-500";
+                document.getElementById('player-result-icon').innerText = "🎉";
+                document.getElementById('player-result-title').innerText = "Correct!";
+            } else {
+                view.className = "view active flex-col items-center justify-center w-full h-full p-4 transition-colors duration-500 bg-red-600";
+                document.getElementById('player-result-icon').innerText = "❌";
+                document.getElementById('player-result-title').innerText = "Incorrect!";
+            }
+        }
+
+        window.submitAnswer = async function(index) {
+            if (hasAnsweredCurrentQuestion) return;
+            hasAnsweredCurrentQuestion = true;
+            
+            const btns = document.querySelectorAll('#player-buttons-container button');
+            btns.forEach((btn, i) => {
+                if (i !== index) btn.classList.add('opacity-50');
+                else btn.innerHTML += '<div class="text-sm mt-2 ml-2 font-bold absolute bottom-2 right-2">Sent</div>';
+            });
+
+            if (!userId || !gamePin) return;
+            
+            const playerRef = doc(db, 'artifacts', appId, 'public', 'data', 'pixelQuizPlayers', `${gamePin}_${userId}`);
+            try {
+                await updateDoc(playerRef, { currentAnswer: index });
+            } catch (e) {
+                console.error("Failed to submit answer", e);
+                hasAnsweredCurrentQuestion = false;
+                showError("Failed to submit answer, try again!");
+            }
+        };
+
+        // Initialize display state
+        switchView('view-start');
+    </script>
+</body>
+</html>
